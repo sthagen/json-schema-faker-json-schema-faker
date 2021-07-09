@@ -1,5 +1,4 @@
-import $RefParser from 'json-schema-ref-parser';
-
+import { getDependencies } from './vendor';
 import Container from './class/Container';
 import format from './api/format';
 import option from './api/option';
@@ -97,7 +96,7 @@ const jsf = (schema, refs, cwd) => {
 jsf.generateWithContext = (schema, refs) => {
   const $refs = getRefs(refs, schema);
 
-  return run($refs, schema, container);
+  return run($refs, schema, container, true);
 };
 
 jsf.generate = (schema, refs) => renderJS(
@@ -137,8 +136,10 @@ jsf.resolveWithContext = (schema, refs, cwd) => {
     },
   };
 
+  const { $RefParser } = getDependencies();
+
   return $RefParser
-    .dereference(cwd, schema, {
+    .bundle(cwd, schema, {
       resolve: {
         file: { order: 100 },
         http: { order: 200 },

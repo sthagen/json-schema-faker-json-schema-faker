@@ -2,19 +2,26 @@ import optionAPI from '../api/option';
 import env from './constants';
 import random from './random';
 
-function getLocalRef(obj, path) {
-  const keyElements = path.replace(/^.*#\//, '').split('/');
+function getLocalRef(obj, path, refs) {
+  const keyElements = path.replace('#/', '/').split('/');
 
-  while (keyElements.length) {
+  let schema = obj.$ref && refs ? refs[obj.$ref] : obj;
+  if (refs && path.includes('#/') && refs[keyElements[0]]) {
+    schema = refs[keyElements.shift()];
+  }
+
+  if (!keyElements[0]) keyElements.shift();
+
+  while (schema && keyElements.length > 0) {
     const prop = keyElements.shift();
 
-    if (!obj[prop]) {
-      throw new Error(`Prop '${prop}' not found in [${Object.keys(obj).join(', ')}] (${path})`);
+    if (!schema[prop]) {
+      throw new Error(`Prop not found: ${prop} (${path})`);
     }
 
-    obj = obj[prop];
+    schema = schema[prop];
   }
-  return obj;
+  return schema;
 }
 
 /**
@@ -28,6 +35,26 @@ function hasProperties(obj, ...properties) {
   return properties.filter(key => {
     return typeof obj[key] !== 'undefined';
   }).length > 0;
+}
+
+/**
+ * Normalize generated date YYYY-MM-DD to not have
+ * out of range values
+ *
+ * @param value
+ * @returns {string}
+ */
+function clampDate(value) {
+  if (value.includes(' ')) {
+    return new Date(value).toISOString().substr(0, 10);
+  }
+
+  let [year, month, day] = value.split('T')[0].split('-');
+
+  month = Math.max(1, Math.min(12, month));
+  day = Math.max(1, Math.min(31, day));
+
+  return `${year}-${month}-${day}`;
 }
 
 /**
@@ -128,6 +155,7 @@ function typecast(type, schema, callback) {
       const max = Math.min(params.maxLength || Infinity, Infinity);
 
       let prev;
+      let noChangeCount = 0;
 
       while (value.length < min) {
         prev = value;
@@ -140,7 +168,14 @@ function typecast(type, schema, callback) {
 
         // avoid infinite-loops while filling strings, if no changes
         // are made we just break the loop... see #540
-        if (value === prev) break;
+        if (value === prev) {
+          noChangeCount += 1;
+          if (noChangeCount === 3) {
+            break;
+          }
+        } else {
+          noChangeCount = 0;
+        }
       }
 
       if (value.length > max) {
@@ -150,11 +185,12 @@ function typecast(type, schema, callback) {
       switch (schema.format) {
         case 'date-time':
         case 'datetime':
-          value = new Date(value).toISOString().replace(/([0-9])0+Z$/, '$1Z');
+          value = new Date(clampDate(value)).toISOString().replace(/([0-9])0+Z$/, '$1Z');
           break;
 
+        case 'full-date':
         case 'date':
-          value = new Date(value).toISOString().substr(0, 10);
+          value = new Date(clampDate(value)).toISOString().substr(0, 10);
           break;
 
         case 'time':
@@ -440,4 +476,5 @@ export default {
   shouldClean,
   clean,
   isEmpty,
+  clampDate,
 };

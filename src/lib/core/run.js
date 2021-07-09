@@ -1,5 +1,4 @@
-import { JSONPath } from 'jsonpath-plus';
-
+import { getDependencies } from '../vendor';
 import optionAPI from '../api/option';
 import traverse from './traverse';
 import random from './random';
@@ -48,6 +47,8 @@ function resolve(obj, data, values, property) {
   }
 
   if (obj.jsonPath) {
+    const { JSONPath } = getDependencies();
+
     const params = typeof obj.jsonPath !== 'object'
       ? { path: obj.jsonPath }
       : obj.jsonPath;
@@ -82,7 +83,7 @@ function resolve(obj, data, values, property) {
 }
 
 // TODO provide types?
-function run(refs, schema, container) {
+function run(refs, schema, container, synchronous) {
   if (Object.prototype.toString.call(schema) !== '[object Object]') {
     throw new Error(`Invalid input, expecting object but given ${typeof schema}`);
   }
@@ -95,6 +96,7 @@ function run(refs, schema, container) {
       refs,
       schema,
       container,
+      synchronous,
       refDepthMin,
       refDepthMax,
     });

@@ -6,15 +6,21 @@ import types from '../types/index';
 import optionAPI from '../api/option';
 
 function getMeta({ $comment: comment, title, description }) {
-  return Object.fromEntries(
-    Object.entries({ comment, title, description })
-      .filter(([, value]) => value),
-  );
+  return Object.entries({ comment, title, description })
+      .filter(([, value]) => value)
+      .reduce((memo, [k, v]) => {
+        memo[k] = v;
+        return memo;
+      }, {});
 }
 
 // TODO provide types
 function traverse(schema, path, resolve, rootSchema) {
   schema = resolve(schema, null, path);
+
+  if (schema && (schema.oneOf || schema.anyOf || schema.allOf)) {
+    schema = resolve(schema, null, path);
+  }
 
   if (!schema) {
     return;
