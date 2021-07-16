@@ -31,6 +31,8 @@ endef
 	@awk -F':.*?##' '/^[a-z\\%!:-]+:.*##/{gsub("%","*",$$1);gsub("\\\\",":*",$$1);printf "\033[36m%8s\033[0m %s\n",$$1,$$2}' $<
 
 ci: deps clean
+	@npm run build -- -ymain
+	@npm run test:integration
 	@npm test
 ifneq ($(CI),)
 	@npm run codecov
@@ -51,7 +53,7 @@ build: deps ## Build scripts for dist
 all: deps ## Build artifact for production envs
 	@(git worktree remove $(src) --force > /dev/null 2>&1) || true
 	@git worktree add $(src) $(target)
-	@cd $(src) && rm -rf * && git checkout -- vendor
+	@cd $(src) && rm -rf *
 	@cp -r public/* $(src)
 	@npm run build
 
@@ -60,6 +62,7 @@ clean: ## Remove cache and generated artifacts
 	@$(call iif,unlink cache.json,Cache file was deleted,Cache file already deleted)
 
 deploy: ## Push built artifacts to github!
+	@cd $(src) && rm -rf js/lib lib
 	@cd $(src) && git add . && git commit -m "$(message)"
 	@git push origin $(target) -f
 
