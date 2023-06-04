@@ -1,7 +1,12 @@
 import { expect } from 'chai';
 import * as td from 'testdouble';
 
-import jsf from '../../dist/main.iife.cjs';
+import '../../dist/bundle.js';
+import { depsCheck } from './_deps_check.mjs';
+
+/* global globalThis */
+
+const jsf = globalThis.JSONSchemaFaker;
 
 describe('UMD Wrapper', () => {
   afterEach(() => {
@@ -34,6 +39,13 @@ describe('UMD Wrapper', () => {
     expect(JSONSchemaFaker.VERSION).not.to.be.undefined;
     expect(JSONSchemaFaker.generate).not.to.be.undefined;
     expect(JSONSchemaFaker.generate({ const: 42 })).to.eql(42);
+  });
+
+  it('should load third-party dependencies', async () => {
+    const { result, data } = await depsCheck(jsf);
+
+    expect(result).to.eql(42);
+    expect(data).to.eql({ value: 42, other: 42 });
   });
 });
 

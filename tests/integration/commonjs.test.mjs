@@ -1,10 +1,8 @@
 import { expect } from 'chai';
 import * as td from 'testdouble';
 
-import jsfExports, { JSONSchemaFaker } from '../../dist/main.cjs';
-
-// CommonJS always exports `default` and named exports in the same `module.exports` object
-const jsf = jsfExports.default;
+import jsf, { JSONSchemaFaker } from '../../dist/main.cjs';
+import { depsCheck } from './_deps_check.mjs';
 
 describe('CommonJS', () => {
   afterEach(() => {
@@ -35,5 +33,12 @@ describe('CommonJS', () => {
     expect(JSONSchemaFaker.VERSION).not.to.be.undefined;
     expect(JSONSchemaFaker.generate).not.to.be.undefined;
     expect(JSONSchemaFaker.generate({ const: 42 })).to.eql(42);
+  });
+
+  it('should load third-party dependencies', async () => {
+    const { result, data } = await depsCheck(jsf);
+
+    expect(result).to.eql(42);
+    expect(data).to.eql({ value: 42, other: 42 });
   });
 });
